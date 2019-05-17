@@ -1,18 +1,17 @@
 import time
-import  re
+import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.keys import Keys
-from bs4 import BeautifulSoup
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from database import User, Base
-import pickle
 import random
+import pickle
+import json
 
 
 pattern = re.compile('.*weibo.com/(\d+)?.*?')
@@ -34,7 +33,37 @@ class WeiboSpider(object):
             executable_path="C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe",
             options=chrome_options)
         self.driver.get(url='http://s.weibo.com/')
-        self.login()
+        self.set_cookie()
+        self.is_login()
+
+    def is_login(self):
+        # 判断是否登录
+        html = self.driver.page_source
+        if html.find('gn_name') == -1:  # 利用用户名判断是否登陆
+            # 没登录 ,则手动登录
+            print('你没有登录')
+            self.login()
+
+    def save_cookie(self):
+        '''保存cookie'''
+        # 将cookie序列化保存下来
+        f1 = open('cookie.txt', 'w')
+        f1.write(json.dumps(self.driver.get_cookies()))
+        f1.close
+
+    def set_cookie(self):
+        '''往浏览器添加cookie'''
+        '''利用pickle序列化后的cookie'''
+        try:
+            f1 = open('cookie.txt')
+            cookies = f1.read()
+            cookies = json.loads(cookies)
+            for cookie in cookies:
+                self.driver.add_cookie(cookie)
+            self.driver.refresh()
+            time.sleep(8)
+        except Exception as e:
+            print(e)
 
     def login(self):
         # 登陆
@@ -53,6 +82,9 @@ class WeiboSpider(object):
         self.driver.find_element_by_xpath("//a[@node-type='submitBtn']").click()
         # 人工输入手机验证码
         time.sleep(30)
+        self.save_cookie()
+
+
 
     def search(self):
         self.driver.get(url='http://s.weibo.com/')
@@ -121,7 +153,9 @@ class WeiboSpider(object):
 
 
 
-
+if __name__ == '__main__':
+    weibo = WeiboSpider('ae56@gewu.org.cn', 'LtERFTWQUYzEnu6', '高考')
+    weibo.get_all_user()
 
 
 
