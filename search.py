@@ -27,6 +27,7 @@ class WeiboSpider(object):
         self.password = password
         self.content = content
         chrome_options = Options()
+        # chrome_options.add_argument('--headless')
         # chrome_options.add_argument('--no-sandbox')
         # chrome_options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(
@@ -84,8 +85,6 @@ class WeiboSpider(object):
         time.sleep(30)
         self.save_cookie()
 
-
-
     def search(self):
         self.driver.get(url='http://s.weibo.com/')
         self.driver.refresh()
@@ -102,15 +101,18 @@ class WeiboSpider(object):
         next_page.click()
 
     def get_all_user(self):
-        while True:
+        try:
             self.search()
             self.get_user()
-            for i in range(49):
+            for i in range(30):
                 self.next()
-                sleep_time = random.randint(10, 20)
+                sleep_time = random.randint(3, 8)
                 time.sleep(sleep_time)
                 self.get_user()
-            time.sleep(300)
+        except Exception as e:
+            print(e)
+        finally:
+            self.driver.close()
 
     def get_user(self):
         try:
@@ -152,10 +154,21 @@ class WeiboSpider(object):
                         print(nick_name.get_text())
 
 
+def send():
+    keywords = ['高考', '高三', '高中']
+    try:
+        while True:
+            for keyword in keywords:
+                weibo = WeiboSpider('ae56@gewu.org.cn', 'LtERFTWQUYzEnu6', keyword)
+                weibo.get_all_user()
+    except Exception as e:
+        print(e)
+        time.sleep(300)
+        send()
+
 
 if __name__ == '__main__':
-    weibo = WeiboSpider('ae56@gewu.org.cn', 'LtERFTWQUYzEnu6', '高考')
-    weibo.get_all_user()
+    send()
 
 
 

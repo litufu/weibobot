@@ -5,6 +5,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from sqlalchemy import create_engine
@@ -26,8 +27,9 @@ class WeiboSpider(object):
         self.username = username
         self.password = password
         chrome_options = Options()
-        # chrome_options.add_argument('--no-sandbox')
-        # chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(
             executable_path="C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe",
             options=chrome_options)
@@ -46,7 +48,7 @@ class WeiboSpider(object):
     def save_cookie(self):
         '''保存cookie'''
         # 将cookie序列化保存下来
-        f1 = open('cookie.txt', 'w')
+        f1 = open('sendcookie.txt', 'w')
         f1.write(json.dumps(self.driver.get_cookies()))
         f1.close
 
@@ -54,7 +56,7 @@ class WeiboSpider(object):
         '''往浏览器添加cookie'''
         '''利用pickle序列化后的cookie'''
         try:
-            f1 = open('cookie.txt')
+            f1 = open('sendcookie.txt')
             cookies = f1.read()
             cookies = json.loads(cookies)
             for cookie in cookies:
@@ -69,9 +71,13 @@ class WeiboSpider(object):
         print('start login manual')
         WebDriverWait(self.driver, 10
                       ).until(EC.presence_of_element_located((By.XPATH, "//a[@node-type='loginBtn']")))
-        self.driver.find_element_by_xpath("//a[@node-type='loginBtn']").click()
-        WebDriverWait(self.driver, 10
-                      ).until(EC.presence_of_element_located((By.XPATH, "//input[@name='username']")))
+        login_btn = self.driver.find_element_by_xpath("//a[@node-type='loginBtn']")
+        login_btn.click()
+        try:
+            WebDriverWait(self.driver, 10
+                          ).until(EC.presence_of_element_located((By.XPATH, "//input[@name='username']")))
+        except TimeoutException as e:
+            login_btn.click()
         user = self.driver.find_element_by_xpath("//input[@name='username']")
         user.clear()
         user.send_keys(self.username)
@@ -81,6 +87,7 @@ class WeiboSpider(object):
         self.driver.find_element_by_xpath("//a[@node-type='submitBtn']").click()
         # 人工输入手机验证码
         time.sleep(30)
+        self.save_cookie()
 
     def send(self, message):
         users = session.query(User).filter(User.send == False).all()
@@ -100,15 +107,23 @@ class WeiboSpider(object):
             user.send = True
             session.commit()
             sleep_time = random.randint(10, 20)
+            print(user.name)
             time.sleep(sleep_time)
 
 
+def send():
+    try:
+        weibo1 = WeiboSpider('sc02@gewu.org.cn', 'LtERFTWQUYzEnu6')
+        weibo1.send(content)
+    except Exception as e:
+        print(e)
+        time.sleep(300)
+        send()
+
 if __name__ == '__main__':
     # 登陆
-    weibo1 = WeiboSpider('sc02@gewu.org.cn', 'LtERFTWQUYzEnu6')
-    while True:
-        weibo1.send(content)
-        time.sleep(300)
+    send()
+
 
 
 
