@@ -8,10 +8,13 @@ from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from database import User, Base
 import random
 import pickle
 import json
+import os
+from PIL import Image
+from database import User, Base
+from ydm import code
 
 
 pattern = re.compile('.*weibo.com/(\d+)?.*?')
@@ -28,11 +31,12 @@ class WeiboSpider(object):
         self.content = content
         chrome_options = Options()
         # chrome_options.add_argument('--headless')
-        # chrome_options.add_argument('--no-sandbox')
-        # chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(
             executable_path="C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe",
             options=chrome_options)
+        self.driver.set_window_size(1200, 900)
         self.driver.get(url='http://s.weibo.com/')
         self.set_cookie()
         self.is_login()
@@ -66,6 +70,29 @@ class WeiboSpider(object):
         except Exception as e:
             print(e)
 
+    def get_snap(self):  # 对目标网页进行截屏。这里截的是全屏
+        self.driver.save_screenshot('full{}.png'.format(self.username[0:4]))
+        page_snap_obj = Image.open('full{}.png'.format(self.username[0:4]))
+        return page_snap_obj
+
+    def get_image(self):  # 对验证码所在位置进行定位，然后截取验证码图片
+        img = self.driver.find_element_by_xpath("//img[@node-type='verifycode_image']")
+        time.sleep(2)
+        location = img.location
+        print(location)
+        size = img.size
+
+        left = location['x']
+        top = location['y']
+        right = left + size['width']
+        bottom = top + size['height']
+
+        page_snap_obj = self.get_snap()
+        image_obj = page_snap_obj.crop((left*1.25, top*1.25, right*1.25, bottom*1.25))
+        image_obj.save('code{}.png'.format(self.username[0:4]))
+        return image_obj  # 得到的就是验证码
+
+
     def login(self):
         # 登陆
         print('start login manual')
@@ -82,6 +109,9 @@ class WeiboSpider(object):
         psw.send_keys(self.password)
         self.driver.find_element_by_xpath("//a[@node-type='submitBtn']").click()
         # 人工输入手机验证码
+        # self.get_image()
+        # result = code('code{}.png'.format(self.username[0:4]))
+        # print(result.value)
         time.sleep(30)
         self.save_cookie()
 
@@ -160,6 +190,7 @@ def send():
         while True:
             for keyword in keywords:
                 weibo = WeiboSpider('ae56@gewu.org.cn', 'LtERFTWQUYzEnu6', keyword)
+                # weibo = WeiboSpider('litufu001', '123456abc', keyword)
                 weibo.get_all_user()
     except Exception as e:
         print(e)

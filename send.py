@@ -131,19 +131,23 @@ def send(weibouser,length,i):
 
 
 if __name__ == '__main__':
-    weibousers = [
-        {"name": 'sc02@gewu.org.cn', "pwd": "LtERFTWQUYzEnu6"},
-        {"name": 'adifus@gewu.org.cn', "pwd": "mGCWWX2EkLKJfBw"},
-        {"name": 'sdiu@gewu.org.cn', "pwd": "LtERFTWQUYzEnu6"},
-    ]
-    length = len(weibousers)
-    p = Pool(length)
-    for i,weibouser in enumerate(weibousers):
-        p.apply_async(send, args=(weibouser,length,i))
-    print('Waiting for all subprocesses done...')
-    p.close()
-    p.join()
-    print('All subprocesses done.')
+    while True:
+        weibousers = [
+            {"name": 'sc02@gewu.org.cn', "pwd": "LtERFTWQUYzEnu6"},
+            {"name": 'adifus@gewu.org.cn', "pwd": "mGCWWX2EkLKJfBw"},
+            {"name": 'sdiu@gewu.org.cn', "pwd": "LtERFTWQUYzEnu6"},
+            {"name": 'dasdi@hotmail.com', "pwd": "LtERFTWQUYzEnu6"},
+            {"name": 'er4rfvcxe3@gmail.com', "pwd": "LtERFTWQUYzEnu6"},
+        ]
+        length = len(weibousers)
+        p = Pool(length)
+        for i,weibouser in enumerate(weibousers):
+            p.apply_async(send, args=(weibouser,length,i))
+        print('Waiting for all subprocesses done...')
+        p.close()
+        p.join()
+        print('All subprocesses done.')
+        time.sleep(300)
 
 
 
