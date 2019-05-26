@@ -100,6 +100,8 @@ def code(IMG_URL):
 
     # 密码
     password = '123456abc'
+    # 联众
+    password = "aUJH32ins8!"
     # 软件ＩＤ，开发者分成必要参数。登录开发者后台【我的软件】获得！
     appid = 7793
 

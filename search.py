@@ -14,7 +14,7 @@ import json
 import os
 from PIL import Image
 from database import User, Base
-from ydm import code
+from lzdm import code
 
 
 pattern = re.compile('.*weibo.com/(\d+)?.*?')
@@ -38,6 +38,7 @@ class WeiboSpider(object):
             options=chrome_options)
         self.driver.set_window_size(1200, 900)
         self.driver.get(url='http://s.weibo.com/')
+        self.driver.save_screenshot('test{}.png'.format(self.username[0:4]))
         self.set_cookie()
         self.is_login()
 
@@ -48,6 +49,7 @@ class WeiboSpider(object):
             # 没登录 ,则手动登录
             print('你没有登录')
             self.login()
+            self.is_login()
 
     def save_cookie(self):
         '''保存cookie'''
@@ -72,6 +74,7 @@ class WeiboSpider(object):
 
     def get_snap(self):  # 对目标网页进行截屏。这里截的是全屏
         self.driver.save_screenshot('full{}.png'.format(self.username[0:4]))
+        time.sleep(3)
         page_snap_obj = Image.open('full{}.png'.format(self.username[0:4]))
         return page_snap_obj
 
@@ -88,7 +91,8 @@ class WeiboSpider(object):
         bottom = top + size['height']
 
         page_snap_obj = self.get_snap()
-        image_obj = page_snap_obj.crop((left*1.25, top*1.25, right*1.25, bottom*1.25))
+        # image_obj = page_snap_obj.crop((left*1.25, top*1.25, right*1.25, bottom*1.25))
+        image_obj = page_snap_obj.crop((left, top, right, bottom))
         image_obj.save('code{}.png'.format(self.username[0:4]))
         return image_obj  # 得到的就是验证码
 
@@ -108,10 +112,24 @@ class WeiboSpider(object):
         psw.clear()
         psw.send_keys(self.password)
         self.driver.find_element_by_xpath("//a[@node-type='submitBtn']").click()
+        time.sleep(3)
         # 人工输入手机验证码
-        # self.get_image()
-        # result = code('code{}.png'.format(self.username[0:4]))
-        # print(result.value)
+        try:
+            verifycode = self.driver.find_element_by_xpath("//input[@name='verifycode']")
+            print('请输入验证码')
+            if verifycode:
+                self.get_image()
+                result = code('code{}.png'.format(self.username[0:4]))
+                print(result['data'])
+                v_code = result['data']['val']
+                print(result)
+                print(v_code)
+                verifycode.clear()
+                verifycode.send_keys(v_code)
+                self.driver.find_element_by_xpath("//a[@node-type='submitBtn']").click()
+        except Exception as e:
+            print(e)
+            print('无需输入人工验证码')
         time.sleep(30)
         self.save_cookie()
 

@@ -11,11 +11,13 @@ from selenium.webdriver.common.keys import Keys
 from multiprocessing import Pool
 import random
 import json
+from PIL import Image
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
 from database import User,Base
 from content import content
+from lzdm import code
 
 pattern = re.compile('.*weibo.com/(\d+)?.*?')
 engine = create_engine('sqlite:///weibo.sqlite?check_same_thread=False')
@@ -33,6 +35,7 @@ class WeiboSpider(object):
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(
             executable_path="C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe",
@@ -48,6 +51,7 @@ class WeiboSpider(object):
             # 没登录 ,则手动登录
             print('你没有登录')
             self.login()
+            self.is_login()
 
     def save_cookie(self):
         '''保存cookie'''
@@ -70,6 +74,30 @@ class WeiboSpider(object):
         except Exception as e:
             print(e)
 
+    def get_snap(self):  # 对目标网页进行截屏。这里截的是全屏
+        self.driver.save_screenshot('full{}.png'.format(self.username[0:4]))
+        time.sleep(3)
+        page_snap_obj = Image.open('full{}.png'.format(self.username[0:4]))
+        return page_snap_obj
+
+    def get_image(self):  # 对验证码所在位置进行定位，然后截取验证码图片
+        img = self.driver.find_element_by_xpath("//img[@node-type='verifycode_image']")
+        time.sleep(2)
+        location = img.location
+        print(location)
+        size = img.size
+
+        left = location['x']
+        top = location['y']
+        right = left + size['width']
+        bottom = top + size['height']
+
+        page_snap_obj = self.get_snap()
+        # image_obj = page_snap_obj.crop((left*1.25, top*1.25, right*1.25, bottom*1.25))
+        image_obj = page_snap_obj.crop((left, top, right, bottom))
+        image_obj.save('code{}.png'.format(self.username[0:4]))
+        return image_obj  # 得到的就是验证码
+
     def login(self):
         # 登陆
         print('start login manual')
@@ -89,6 +117,23 @@ class WeiboSpider(object):
         psw.clear()
         psw.send_keys(self.password)
         self.driver.find_element_by_xpath("//a[@node-type='submitBtn']").click()
+        time.sleep(3)
+        try:
+            verifycode = self.driver.find_element_by_xpath("//input[@name='verifycode']")
+            print('请输入验证码')
+            if verifycode:
+                self.get_image()
+                result = code('code{}.png'.format(self.username[0:4]))
+                print(result['data'])
+                v_code = result['data']['val']
+                print(result)
+                print(v_code)
+                verifycode.clear()
+                verifycode.send_keys(v_code)
+                self.driver.find_element_by_xpath("//a[@node-type='submitBtn']").click()
+        except Exception as e:
+            print(e)
+            print('无需输入人工验证码')
         # 人工输入手机验证码
         time.sleep(30)
         self.save_cookie()
