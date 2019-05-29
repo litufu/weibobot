@@ -35,7 +35,7 @@ class WeiboSpider(object):
         chrome_options = Options()
         chrome_options.add_argument('--headless')
         chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(
             executable_path="C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe",
@@ -162,6 +162,7 @@ class WeiboSpider(object):
         end = int(users_length * ((self.no + 1)/self.length))
         for user in users[start:end]:
             self.send(message,user)
+        self.driver.close()
 
 
 def send(weibouser,length,i):
